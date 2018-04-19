@@ -1,7 +1,7 @@
 #include <stdio.h>  
 #include <stdlib.h>  
-#include <string.h>
-#include <time.h>
+#include <cstring>
+#include <ctime>
 #include "graphColoring.h"
 #pragma warning(disable:4996)
 #pragma warning(disable:4700)
@@ -33,7 +33,7 @@ int main()
 	{
 		findMove(currentMove, bestMove, tabuBestMove, adjVertics, tabuTenure, adjTable, sol, n, k, iter, f, bestF);
 		makeMove(currentMove, adjVertics, tabuTenure, adjTable, sol, n, k, iter, f, bestF);
-		if (iter > 2500000)break;
+		if (iter > 25000000)break;
 	}
 
 	seconds = time(NULL) - seconds;
