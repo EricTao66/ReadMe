@@ -1,6 +1,7 @@
 #include <stdio.h>  
 #include <stdlib.h>  
-#include <string.h>
+#include <cstring>
+#include <algorithm>
 #include "graphColoring.h"
 #pragma warning(disable:4996)
 
@@ -87,7 +88,7 @@ void displayAdjVertice(vNode** adjVertics, int* sol, int n, int k)
 }
 
 //初始化
-void initialization(Move &currentMove, Move **bestMove, Move **tabuBestMove, vNode ***adjVertics, int ***tabuTenure, int ***adjTable, int **sol, int n, int k,int &iter, int &f, int &bestF)
+void initialization(Move &currentMove, Move **bestMove, Move **tabuBestMove, vNode ***adjVertics, int ***tabuTenure, int ***adjTable, int ***sol, int **s, int **s1ColNum, int **s2ColNum, int **sSelect, int n, int k)
 {
 	int i, j, start, end;
 	//初始化邻接链表  
@@ -111,13 +112,23 @@ void initialization(Move &currentMove, Move **bestMove, Move **tabuBestMove, vNo
 	}
 
 	//初始化解数组
-	*sol = (int*)malloc(sizeof(int)*n);
-	for (i = 0; i < n; i++)
+	*sol = (int**)malloc(sizeof(int)*SolNum);
+	for (i = 0; i < SolNum; i++)
 	{
-		(*sol)[i] = (int)(rand() % k);
+		(*sol)[i] = (int*)malloc(sizeof(int*)*n);
+		for (j = 0; j < n; j++)
+		{
+			(*sol)[i][j] = (int)(rand() % k);
+		}
 	}
 
-	//初始化邻接表
+	*s = (int*)malloc(sizeof(int)*n);
+	for (i = 0; i < n; i++)
+	{
+		(*s)[i] = 0;// (int)(rand() % k);
+	}
+	
+	//初始化冲突表
 	*adjTable = (int**)malloc(sizeof(int*)*n);
 	for (i = 0; i < n; i++)
 	{
@@ -125,15 +136,6 @@ void initialization(Move &currentMove, Move **bestMove, Move **tabuBestMove, vNo
 		for (j = 0; j < k; j++)
 		{
 			(*adjTable)[i][j] = 0;
-		}
-	}
-	for (i = 0; i < n; i++)
-	{
-		vNode* head = (*adjVertics)[i];
-		while (head != NULL)
-		{
-			++(*adjTable)[i][(*sol)[head->value]];
-			head = head->next;
 		}
 	}
 
@@ -164,9 +166,18 @@ void initialization(Move &currentMove, Move **bestMove, Move **tabuBestMove, vNo
 		(*tabuBestMove)[i] = { 0,0,0,0 };
 	}
 
-	iter = 0;
-	f = objFunction(*adjVertics, *sol, n, k);
-	bestF = f;
+	*s1ColNum = (int*)malloc(sizeof(int)*k);
+	*s2ColNum = (int*)malloc(sizeof(int)*k);
+	*sSelect = (int*)malloc(sizeof(int)*n);
+	for (j = 0; j < k; j++)
+	{
+		(*s1ColNum)[j] = 0;
+		(*s2ColNum)[j] = 0;
+	}
+	for (i = 0; i < n; i++)
+	{
+		(*sSelect)[i] = 0;
+	}
 }
 
 //目标函数
@@ -285,3 +296,222 @@ void makeMove(Move &currentMove, vNode **adjVertics,int **tabuTenure, int **adjT
 	iter++;
 }
 
+//禁忌搜索
+int tabuSearch(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adjVertics, int **tabuTenure, int **adjTable, int *sol, int n, int k, int &f)
+{
+	int i, j, bestF, iter = 0;
+	vNode* head;
+	//初始化冲突表
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < k; j++)
+		{
+			adjTable[i][j] = 0;
+		}
+	}
+	for (i = 0; i < n; i++)
+	{
+		head = adjVertics[i];
+		while (head != NULL)
+		{
+			++adjTable[i][sol[head->value]];
+			head = head->next;
+		}
+	}
+	//初始化禁忌表
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < k; j++)
+		{
+			tabuTenure[i][j] = 0;
+		}
+	}
+	f = objFunction(adjVertics, sol, n, k);
+	bestF = f;
+	iter = 0;
+	while (f && iter < MaxIter)
+	{
+		findMove(currentMove, bestMove, tabuBestMove, adjVertics, tabuTenure, adjTable, sol, n, k, iter, f, bestF);
+		makeMove(currentMove, adjVertics, tabuTenure, adjTable, sol, n, k, iter, f, bestF);
+	}
+	return f;
+}
+
+//交叉算子
+void crossover(int *s1ColNum, int *s2ColNum, int *sSelect, int *s1, int *s2, int *s, int n, int k)
+{
+	int i, j, l, sum, s1Max=0, s1MaxSum=0, s2Max=0, s2MaxSum=0;
+	
+	for (j = 0; j < k; j++)
+	{
+		s1ColNum[j] = 0;
+		s2ColNum[j] = 0;
+	}
+	for (i = 0; i < n; i++)
+	{
+		sSelect[i] = 0;
+	}
+	for (i = 0; i < n; i++)
+	{
+		for (j = 0; j < k; j++)
+		{
+			if (s1[i] == j)
+			{
+				++s1ColNum[j];
+			}
+			if (s2[i] == j)
+			{
+				++s2ColNum[j];
+			}
+		}
+	}
+
+	for (l = 0; l < k/2+1; l++)
+	{
+		s1MaxSum = 0;
+		for (j = 0; j < k; j++)
+		{
+			if (j % 2 == 1 && s1ColNum[j] >= s1MaxSum)
+			{
+				s1MaxSum = s1ColNum[j];
+				s1Max = j;
+			}
+		}
+		for (i = 0; i < n; i++)
+		{
+			if (s1[i] == s1Max && sSelect[i] == 0)
+			{
+				sSelect[i] = 1;
+				s[i] = s1Max;
+				for (j = 0; j < k; j++)
+				{
+					if (s2[i] == j)
+					{
+						--s2ColNum[j];
+					}
+				}
+			}
+		}
+		s1ColNum[s1Max] = 0;
+
+		s2MaxSum = 0;
+		for (j = 0; j < k; j++)
+		{
+			if (j % 2 == 0 && s2ColNum[j] >= s2MaxSum)
+			{
+				s2MaxSum = s2ColNum[j];
+				s2Max = j;
+			}
+		}
+		for (i = 0; i < n; i++)
+		{
+			if (s2[i] == s2Max && sSelect[i] == 0)
+			{
+				sSelect[i] = 1;
+				s[i] = s2Max;
+				for (j = 0; j < k; j++)
+				{
+					if (s1[i] == j)
+					{
+						--s1ColNum[j];
+					}
+				}
+			}
+		}
+		s2ColNum[s2Max] = 0;
+	}
+	for (i = 0; i < k; i++)
+	{
+		if (sSelect[i] == 0)
+		{
+			s[i] = rand() % k;
+		}
+	}
+}
+
+//找父母
+void chooseParent(int &s1, int &s2, int **sol, int *f, int n)
+{
+	int i, fBest1 = 100000, fBest2 = 100000, sum = 0;
+	int fSort[SolNum];
+	int s[SolNum];
+	std::copy(f, f + SolNum, fSort);
+	std::sort(fSort, fSort + SolNum);
+	if (fSort[0] != fSort[1])
+	{
+		if (fSort[1] != fSort[2])
+		{
+			for (i = 0; i < SolNum; i++)
+			{
+				if (f[i] == fSort[0])
+				{
+					s1 = i;
+				}
+				if (f[i] == fSort[1])
+				{
+					s2 = i;
+				}
+			}
+		}
+		else
+		{
+			for (i = 0; i < SolNum; i++)
+			{
+				if (f[i] == fSort[0])
+				{
+					s1 = i;
+				}
+				if (f[i] == fSort[1])
+				{
+					s[sum] = i;
+					sum++;
+				}
+			}
+			s2 = s[rand() % sum];
+		}
+	}
+	else
+	{
+		for (i = 0; i < SolNum; i++)
+		{
+			if (f[i] == fSort[0])
+			{
+				s[sum] = i;
+				sum++;
+			}
+		}
+		std::random_shuffle(s, s + sum);
+		s1 = s[0];
+		s2 = s[1];
+	}
+}
+
+//更新群体
+void updatePopulation(vNode **adjVertics, int *s, int **sol, int fs, int *f, int n, int k)
+{
+	int i, fWorst = 0, iWorst;
+	for (i = 0; i < SolNum; i++)
+	{
+		if (f[i] > fWorst)
+		{
+			fWorst = f[i];
+			iWorst = i;
+		}
+	}
+	if (fs < fWorst)
+	{
+		for (i = 0; i < n; i++)
+		{
+			sol[iWorst][i] = s[i];
+		}
+		f[iWorst] = fs;
+	}
+	else if (fs == fWorst && rand() % 2 == 0)
+	{
+		for (i = 0; i < n; i++)
+		{
+			sol[iWorst][i] = s[i];
+		}
+		f[iWorst] = fs;
+	}
+}
