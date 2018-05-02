@@ -5,58 +5,44 @@
 #include "graphColoring.h"
 #pragma warning(disable:4996)
 
-void insertIntoAdjVertics(vNode** adjVertics, int start, int end)
-{
+//向邻接表中插入一个数据，并保证邻接表的有序性  
+void insertIntoAdjVertics(vNode **adjVertics, int start, int end){
 	vNode* node = (vNode*)malloc(sizeof(vNode));
-	vNode* head = adjVertics[start];
-
+	vNode *head = adjVertics[start];
 	node->value = end;
 	node->next = NULL;
 
-	if (head == NULL) 
-	{
+	if (head == NULL) {
 		adjVertics[start] = node;
 		return;
 	}
-
-	if (head->next == NULL && head->value>end) 
-	{
+	if (head->next == NULL && head->value>end) {
 		node->next = head;
 		adjVertics[start] = node;
 		return;
 	}
-
-	while (head->next != NULL && head->next->value<end) 
-	{
+	while (head->next != NULL && head->next->value<end) {
 		head = head->next;
 	}
-
-	if (head->next == NULL) 
-	{
+	if (head->next == NULL) {
 		head->next = node;
 		return;
 	}
-
 	node->next = head->next;
 	head->next = node;
 }
 
-//打印邻接表 
-void displayAdjTable(int** adjTable, int* sol, int n, int k)
-{
+//打印邻接冲突表 
+void displayAdjTable(int adjTable[n][k], int sol[n]){
 	int i, j;
 	printf("\n");
-	for (i = 0; i < n; i++)
-	{
+	for (i = 0; i < n; ++i){
 		printf("Vertex%-3d: ", i);
-		for (j = 0; j < k; j++)
-		{
-			if (sol[i] == j)
-			{
+		for (j = 0; j < k; ++j){
+			if (sol[i] == j){
 				printf("[%3d]", adjTable[i][j]);
 			}
-			else
-			{
+			else{
 				printf(" %3d ", adjTable[i][j]);
 			}
 		}
@@ -65,21 +51,16 @@ void displayAdjTable(int** adjTable, int* sol, int n, int k)
 	printf("-------------\n");
 }
 
-//打印邻接表  
-void displayAdjVertice(vNode** adjVertics, int* sol, int n, int k)
-{
-	int i, j;
+//打印邻接节点表  
+void displayAdjVertice(vNode **adjVertics, int sol[n]){
+	int i;
 	vNode* head;
 	printf("\n");
-	for (i = 0; i < n; i++)
-	{
-		j = 0;
+	for (i = 0; i < n; ++i){
 		head = adjVertics[i];
 		printf("[Vertex%-3d] Color%-2d Neighbor: ", i, sol[i]);
-		while (head != NULL)
-		{
-			j++;
-			printf("->%d[Ve%-3d] Co%-2d ", j, head->value, sol[head->value]);
+		while (head != NULL){
+			printf("->[Ve%-3d] Co%-2d ", head->value, sol[head->value]);
 			head = head->next;
 		}
 		printf("\n");
@@ -88,110 +69,39 @@ void displayAdjVertice(vNode** adjVertics, int* sol, int n, int k)
 }
 
 //初始化
-void initialization(Move &currentMove, Move **bestMove, Move **tabuBestMove, vNode ***adjVertics, int ***tabuTenure, int ***adjTable, int ***sol, int **s, int **s1ColNum, int **s2ColNum, int **sSelect, int n, int k)
-{
+void initialization(vNode ***adjVertics, int sol[SolNum][n]){
 	int i, j, start, end;
 	//初始化邻接链表  
 	*adjVertics = (vNode**)malloc(sizeof(vNode*)*n);
-	for (i = 0; i < n; i++)
-	{
+	for (i = 0; i < n; ++i){
 		(*adjVertics)[i] = NULL;
 	}
-
 	//输入定点，格式为 1 2  stop by -1
-	while (1)
-	{
+	while (1){
 		scanf("%d", &start);
-		if (start == -1)
-		{
+		if (start == -1){
 			break;
 		}
 		scanf("%d", &end);
 		insertIntoAdjVertics(*adjVertics, start - 1, end - 1);
 		insertIntoAdjVertics(*adjVertics, end - 1, start - 1);
 	}
-
 	//初始化解数组
-	*sol = (int**)malloc(sizeof(int)*SolNum);
-	for (i = 0; i < SolNum; i++)
-	{
-		(*sol)[i] = (int*)malloc(sizeof(int*)*n);
-		for (j = 0; j < n; j++)
-		{
-			(*sol)[i][j] = (int)(rand() % k);
+	for (i = 0; i < SolNum; ++i){
+		for (j = 0; j < n; ++j){
+			sol[i][j] = (int)(rand() % k);
 		}
-	}
-
-	*s = (int*)malloc(sizeof(int)*n);
-	for (i = 0; i < n; i++)
-	{
-		(*s)[i] = 0;// (int)(rand() % k);
-	}
-	
-	//初始化冲突表
-	*adjTable = (int**)malloc(sizeof(int*)*n);
-	for (i = 0; i < n; i++)
-	{
-		(*adjTable)[i] = (int*)malloc(sizeof(int)*k);
-		for (j = 0; j < k; j++)
-		{
-			(*adjTable)[i][j] = 0;
-		}
-	}
-
-	//初始化禁忌表
-	*tabuTenure = (int**)malloc(sizeof(int*)*n);
-	for (i = 0; i < n; i++)
-	{
-		(*tabuTenure)[i] = (int*)malloc(sizeof(int)*k);
-		for (j = 0; j < k; j++)
-		{
-			(*tabuTenure)[i][j] = 0;
-		}
-	}
-
-	//初始化移动方向
-	i = rand() % n;
-	j = rand() % k;
-	currentMove = { i,j,j,0 };
-
-	*bestMove = (Move*)malloc(sizeof(Move)*n*k);
-	for (i = 0; i < n*k; i++)
-	{
-		(*bestMove)[i] = { 0,0,0,0 };
-	}
-	*tabuBestMove = (Move*)malloc(sizeof(Move)*n*k);
-	for (i = 0; i < n*k; i++)
-	{
-		(*tabuBestMove)[i] = { 0,0,0,0 };
-	}
-
-	*s1ColNum = (int*)malloc(sizeof(int)*k);
-	*s2ColNum = (int*)malloc(sizeof(int)*k);
-	*sSelect = (int*)malloc(sizeof(int)*n);
-	for (j = 0; j < k; j++)
-	{
-		(*s1ColNum)[j] = 0;
-		(*s2ColNum)[j] = 0;
-	}
-	for (i = 0; i < n; i++)
-	{
-		(*sSelect)[i] = 0;
 	}
 }
 
 //目标函数
-int objFunction(vNode** adjVertics, int* sol, int n, int k)
-{
+int objFunction(vNode** adjVertics, int sol[n]){
 	int i, sum = 0;
-	vNode* head;
-	for (i = 0; i < n; i++)
-	{
+	vNode *head;
+	for (i = 0; i < n; ++i){
 		head = adjVertics[i];
-		while (head != NULL)
-		{
-			if (sol[i] == sol[head->value])
-			{
+		while (head != NULL){
+			if (sol[i] == sol[head->value]){
 				++sum;
 			}
 			head = head->next;
@@ -202,27 +112,21 @@ int objFunction(vNode** adjVertics, int* sol, int n, int k)
 }
 
 //寻找移动方向
-void findMove(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adjVertics, int **tabuTenure, int **adjTable, int *sol, int n, int k, int &iter, int f, int bestF)
-{
+void findMove(Move &currentMove, vNode **adjVertics, int tabuTenure[n][k], int adjTable[n][k], int sol[n], int &iter, int f, int bestF){
 	int i, j, delta, bestDelta = f + 1, tabuBestDelta = f + 1, foundFlag = 0;
 	int sum = 0, tabuSum = 0;
+	Move bestMove[n*k], tabuBestMove[n*k];
 	currentMove.u = rand() % n;
 	currentMove.vi = sol[currentMove.u];
 	currentMove.vj = rand() % k;
 	currentMove.delta = adjTable[currentMove.u][currentMove.vj] - adjTable[currentMove.u][currentMove.vi];
-	for (i = 0; i < n; i++)
-	{
-		if (adjTable[i][sol[i]])
-		{
-			for (j = 0; j < k; j++)
-			{
-				if (j != sol[i])
-				{
+	for (i = 0; i < n; ++i){
+		if (adjTable[i][sol[i]]){
+			for (j = 0; j < k; ++j){
+				if (j != sol[i]){
 					delta = adjTable[i][j] - adjTable[i][sol[i]];
-					if (iter >= tabuTenure[i][j])
-					{
-						if (delta < bestDelta)
-						{
+					if (iter >= tabuTenure[i][j]){
+						if (delta < bestDelta){
 							foundFlag = 1;
 							bestDelta = delta;
 							sum = 0;
@@ -231,8 +135,7 @@ void findMove(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adj
 							bestMove[sum].vj = j;
 							bestMove[sum].delta = delta;
 						}
-						else if (delta == bestDelta)
-						{
+						else if (delta == bestDelta){
 							sum++;
 							bestMove[sum].u = i;
 							bestMove[sum].vi = sol[i];
@@ -242,8 +145,7 @@ void findMove(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adj
 					}
 					else
 					{
-						if (delta < tabuBestDelta)
-						{
+						if (delta < tabuBestDelta){
 							tabuBestDelta = delta;
 							tabuSum = 0;
 							tabuBestMove[tabuSum].u = i;
@@ -251,8 +153,7 @@ void findMove(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adj
 							tabuBestMove[tabuSum].vj = j;
 							tabuBestMove[tabuSum].delta = delta;
 						}
-						else if (delta == tabuBestDelta)
-						{
+						else if (delta == tabuBestDelta){
 							tabuSum++;
 							tabuBestMove[tabuSum].u = i;
 							tabuBestMove[tabuSum].vi = sol[i];
@@ -264,252 +165,174 @@ void findMove(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adj
 			}
 		}
 	}
-	if ((tabuBestDelta < bestDelta) && (f + tabuBestDelta < bestF)) //特赦
-	{
-		tabuSum = rand() % (tabuSum + 1);
-		currentMove = tabuBestMove[tabuSum];
+	if ((tabuBestDelta < bestDelta) && (f + tabuBestDelta < bestF)){
+		currentMove = tabuBestMove[rand() % (tabuSum + 1)];
 	}
-	else if (foundFlag)
-	{
-		sum = rand() % (sum + 1);
-		currentMove = bestMove[sum];
+	else if (foundFlag){
+		currentMove = bestMove[rand() % (sum + 1)];
 	}
 }
 
 //执行移动并更新邻接表、禁忌表以及目标函数值
-void makeMove(Move &currentMove, vNode **adjVertics,int **tabuTenure, int **adjTable, int *sol, int n, int k, int &iter, int &f, int &bestF)
-{
+void makeMove(Move &currentMove, vNode **adjVertics,int tabuTenure[n][k], int adjTable[n][k], int sol[n], int &iter, int &f, int &bestF){
 	vNode* head = adjVertics[currentMove.u];
 	sol[currentMove.u] = currentMove.vj;
 	f += currentMove.delta;
 	tabuTenure[currentMove.u][currentMove.vi] = iter + f + rand() % 10;
-	while (head != NULL)
-	{
+	while (head != NULL){
 		++(adjTable[head->value][currentMove.vj]);
 		--(adjTable[head->value][currentMove.vi]);
 		head = head->next;
 	}
-	if (bestF > f)
-	{
+	if (bestF > f){
 		bestF = f;
 	}
-	iter++;
+	++iter;
 }
 
 //禁忌搜索
-int tabuSearch(Move &currentMove, Move *bestMove, Move *tabuBestMove, vNode **adjVertics, int **tabuTenure, int **adjTable, int *sol, int n, int k, int &f)
-{
-	int i, j, bestF, iter = 0;
-	vNode* head;
+int tabuSearch(vNode **adjVertics, int sol[n], int &f, int &tabuIter){
+	int i, bestF, fLast, iter = 0, fNChangeTimes = 0;
+	int adjTable[n][k] = { 0 }, tabuTenure[n][k] = { 0 };
+	Move currentMove = { 0 };
+	vNode *head = NULL;
 	//初始化冲突表
-	for (i = 0; i < n; i++)
-	{
-		for (j = 0; j < k; j++)
-		{
-			adjTable[i][j] = 0;
-		}
-	}
-	for (i = 0; i < n; i++)
-	{
+	for (i = 0; i < n; ++i){
 		head = adjVertics[i];
-		while (head != NULL)
-		{
+		while (head != NULL){
 			++adjTable[i][sol[head->value]];
 			head = head->next;
 		}
 	}
-	//初始化禁忌表
-	for (i = 0; i < n; i++)
-	{
-		for (j = 0; j < k; j++)
-		{
-			tabuTenure[i][j] = 0;
-		}
-	}
-	f = objFunction(adjVertics, sol, n, k);
+	f = objFunction(adjVertics, sol);
 	bestF = f;
-	iter = 0;
-	while (f && iter < MaxIter)
-	{
-		findMove(currentMove, bestMove, tabuBestMove, adjVertics, tabuTenure, adjTable, sol, n, k, iter, f, bestF);
-		makeMove(currentMove, adjVertics, tabuTenure, adjTable, sol, n, k, iter, f, bestF);
+	fLast = f;
+	while (f && fNChangeTimes < fNChangeTimesMax){
+		findMove(currentMove, adjVertics, tabuTenure, adjTable, sol, iter, f, bestF);
+		makeMove(currentMove, adjVertics, tabuTenure, adjTable, sol, iter, f, bestF);
+		if (f < fLast){
+			fNChangeTimes = 0;
+		}
+		else{
+			++fNChangeTimes;
+		}
+		fLast = f;
+		++tabuIter;
 	}
 	return f;
 }
 
 //交叉算子
-void crossover(int *s1ColNum, int *s2ColNum, int *sSelect, int *s1, int *s2, int *s, int n, int k)
-{
-	int i, j, l, sum, s1Max=0, s1MaxSum=0, s2Max=0, s2MaxSum=0;
-	
-	for (j = 0; j < k; j++)
-	{
-		s1ColNum[j] = 0;
-		s2ColNum[j] = 0;
-	}
-	for (i = 0; i < n; i++)
-	{
-		sSelect[i] = 0;
-	}
-	for (i = 0; i < n; i++)
-	{
-		for (j = 0; j < k; j++)
-		{
-			if (s1[i] == j)
-			{
-				++s1ColNum[j];
-			}
-			if (s2[i] == j)
-			{
-				++s2ColNum[j];
-			}
-		}
+void crossover(int s1[n], int s2[n], int s[n]){
+	int i, j, l, s1MaxColor = 0, s1MaxSum = 0, s2MaxColor = 0, s2MaxSum = 0;
+	int s1ColNum[k] = { 0 }, s2ColNum[k] = { 0 };
+	int sSelect[n] = { 0 };
+	for (i = 0; i < n; ++i) {
+		++s1ColNum[s1[i]];
+		++s2ColNum[s2[i]];
 	}
 
-	for (l = 0; l < k/2+1; l++)
-	{
+	for (l = 0; l < k/2+1; ++l){
 		s1MaxSum = 0;
-		for (j = 0; j < k; j++)
-		{
-			if (j % 2 == 1 && s1ColNum[j] >= s1MaxSum)
-			{
+		for (j = 0; j < k; ++j){
+			if (s1ColNum[j] >= s1MaxSum){
 				s1MaxSum = s1ColNum[j];
-				s1Max = j;
+				s1MaxColor = j;
 			}
 		}
-		for (i = 0; i < n; i++)
-		{
-			if (s1[i] == s1Max && sSelect[i] == 0)
-			{
+		for (i = 0; i < n; ++i){
+			if (s1[i] == s1MaxColor && sSelect[i] == 0){
 				sSelect[i] = 1;
-				s[i] = s1Max;
-				for (j = 0; j < k; j++)
-				{
-					if (s2[i] == j)
-					{
-						--s2ColNum[j];
-					}
-				}
+				s[i] = s1MaxColor;
+				--s2ColNum[s2[i]];
 			}
 		}
-		s1ColNum[s1Max] = 0;
+		s1ColNum[s1MaxColor] = 0;
 
 		s2MaxSum = 0;
-		for (j = 0; j < k; j++)
-		{
-			if (j % 2 == 0 && s2ColNum[j] >= s2MaxSum)
-			{
+		for (j = 0; j < k; ++j){
+			if (s2ColNum[j] >= s2MaxSum){
 				s2MaxSum = s2ColNum[j];
-				s2Max = j;
+				s2MaxColor = j;
 			}
 		}
-		for (i = 0; i < n; i++)
-		{
-			if (s2[i] == s2Max && sSelect[i] == 0)
-			{
+		for (i = 0; i < n; ++i){
+			if (s2[i] == s2MaxColor && sSelect[i] == 0){
 				sSelect[i] = 1;
-				s[i] = s2Max;
-				for (j = 0; j < k; j++)
-				{
-					if (s1[i] == j)
-					{
-						--s1ColNum[j];
-					}
-				}
+				s[i] = s2MaxColor;
+				--s1ColNum[s1[i]];
 			}
 		}
-		s2ColNum[s2Max] = 0;
+		s2ColNum[s2MaxColor] = 0;
 	}
-	for (i = 0; i < k; i++)
-	{
-		if (sSelect[i] == 0)
-		{
+	for (i = 0; i < k; ++i){
+		if (sSelect[i] == 0){
 			s[i] = rand() % k;
 		}
 	}
 }
 
 //找父母
-void chooseParent(int &s1, int &s2, int **sol, int *f, int n)
-{
-	int i, fBest1 = 100000, fBest2 = 100000, sum = 0;
+void chooseParent(int &i1, int &i2, int sol[SolNum][n], int f[SolNum]){
+	int i, sum = 0;
 	int fSort[SolNum];
 	int s[SolNum];
 	std::copy(f, f + SolNum, fSort);
 	std::sort(fSort, fSort + SolNum);
-	if (fSort[0] != fSort[1])
-	{
-		if (fSort[1] != fSort[2])
-		{
-			for (i = 0; i < SolNum; i++)
-			{
-				if (f[i] == fSort[0])
-				{
-					s1 = i;
+	if (fSort[0] != fSort[1]){
+		if (fSort[1] != fSort[2]){
+			for (i = 0; i < SolNum; ++i){
+				if (f[i] == fSort[0]){
+					i1 = i;
 				}
-				if (f[i] == fSort[1])
-				{
-					s2 = i;
+				if (f[i] == fSort[1]){
+					i2 = i;
 				}
 			}
 		}
-		else
-		{
-			for (i = 0; i < SolNum; i++)
-			{
-				if (f[i] == fSort[0])
-				{
-					s1 = i;
+		else{
+			for (i = 0; i < SolNum; ++i){
+				if (f[i] == fSort[0]){
+					i1 = i;
 				}
-				if (f[i] == fSort[1])
-				{
+				if (f[i] == fSort[1]){
 					s[sum] = i;
 					sum++;
 				}
 			}
-			s2 = s[rand() % sum];
+			i2 = s[rand() % sum];
 		}
 	}
-	else
-	{
-		for (i = 0; i < SolNum; i++)
-		{
-			if (f[i] == fSort[0])
-			{
+	else{
+		for (i = 0; i < SolNum; ++i){
+			if (f[i] == fSort[0]){
 				s[sum] = i;
 				sum++;
 			}
 		}
 		std::random_shuffle(s, s + sum);
-		s1 = s[0];
-		s2 = s[1];
+		i1 = s[0];
+		i2 = s[1];
 	}
 }
 
 //更新群体
-void updatePopulation(vNode **adjVertics, int *s, int **sol, int fs, int *f, int n, int k)
-{
+void updatePopulation(int s[n], int sol[SolNum][n], int fs, int f[SolNum]){
 	int i, fWorst = 0, iWorst;
-	for (i = 0; i < SolNum; i++)
-	{
-		if (f[i] > fWorst)
-		{
+	for (i = 0; i < SolNum; ++i){
+		if (f[i] > fWorst){
 			fWorst = f[i];
 			iWorst = i;
 		}
 	}
-	if (fs < fWorst)
-	{
-		for (i = 0; i < n; i++)
-		{
+	if (fs < fWorst){
+		for (i = 0; i < n; ++i){
 			sol[iWorst][i] = s[i];
 		}
 		f[iWorst] = fs;
 	}
-	else if (fs == fWorst && rand() % 2 == 0)
-	{
-		for (i = 0; i < n; i++)
-		{
+	else if (fs == fWorst && rand() % 2){
+		for (i = 0; i < n; ++i){
 			sol[iWorst][i] = s[i];
 		}
 		f[iWorst] = fs;
