@@ -19,10 +19,10 @@ int main(){
 	srand(1525266756); //17s
 	initialization(&adjVertics, sol);
 
-	printf("-------------\n");
+	//printf("-------------\n");
 	for (i = 0; i < SolNum; ++i){
 		tabuSearch(adjVertics, sol[i], f[i], tabuIter);
-		printf("F%d(S) = %d \n", i, f[i]);
+		//printf("F%d(S) = %d \n", i, f[i]);
 	}
 
 	while (fs && evoIter < 10000){

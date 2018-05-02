@@ -1,8 +1,10 @@
 # ReadMe
-
-Vertex: 500. Color: 49.  
-Population: 10. Max iter of tabu search: 10000.  
-Total iter is 3430000, using 66 second(s), iteration velocity is 51969/s.    
-
-
-
+******************
+## Vertex: 500. Color: 49.  
+srand() seed: 1525266756.  
+Population: 8.   
+Max iter when f(s) !change: 150.  
+Total iter is 2410281, using 17 second(s), iteration velocity is 141K/s.
+******************
+(IDE: Visual Studio Community 2017)     
+(for x64 release version)  
